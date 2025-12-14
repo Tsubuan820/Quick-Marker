@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Quick-Marker</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Marker</title>
+  <style>
+    :root {
+      --bg-primary: #ffffff; --bg-secondary: #f5f5f5; --bg-toolbar: #ffffff;
+      --text-primary: #333333; --text-secondary: #666666; --border-color: #e0e0e0;
+      --accent-color: #5e89e6; --shadow: 0 2px 8px rgba(0,0,0,0.1); --canvas-bg: #f0f0f0;
+    }
+    [data-theme="dark"] {
+      --bg-primary: #1e1e1e; --bg-secondary: #2d2d2d; --bg-toolbar: #252525;
+      --text-primary: #e0e0e0; --text-secondary: #a0a0a0; --border-color: #404040;
+      --accent-color: #7aa2f7; --shadow: 0 2px 8px rgba(0,0,0,0.3); --canvas-bg: #2a2a2a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.3s, color 0.3s; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    h1 { font-size: 1.5rem; font-weight: 600; background: linear-gradient(135deg, #5e89e6, #c0a2fa, #edaefc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .theme-toggle { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 16px; cursor: pointer; font-size: 1rem; transition: all 0.2s; color: var(--text-primary); }
+    .theme-toggle:hover { background: var(--accent-color); color: white; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--bg-toolbar); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .tool-group { display: flex; gap: 4px; padding-right: 12px; border-right: 1px solid var(--border-color); align-items: center; }
+    .tool-group:last-child { border-right: none; padding-right: 0; }
+    .tool-group-label { font-size: 0.7rem; color: var(--text-secondary); margin-right: 4px; }
+    .tool-btn { background: var(--bg-secondary); border: 2px solid transparent; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); transition: all 0.2s; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .tool-btn:hover { background: var(--accent-color); color: white; }
+    .tool-btn.active { border-color: var(--accent-color); background: var(--accent-color); color: white; }
+    .tool-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .tool-btn.small { padding: 6px 10px; min-width: 36px; justify-content: center; }
+    .tool-btn.danger:hover { background: #e53935; }
+    .color-picker { width: 36px; height: 36px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; }
+    .color-picker.small { width: 30px; height: 30px; }
+    .canvas-container { background: var(--canvas-bg); border-radius: 12px; padding: 20px; min-height: 400px; display: flex; align-items: center; justify-content: center; overflow: auto; position: relative; }
+    #canvas { max-width: 100%; }
+    .placeholder { text-align: center; color: var(--text-secondary); }
+    .placeholder p { margin-bottom: 12px; font-size: 1.1rem; }
+    .placeholder kbd { background: var(--bg-toolbar); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); }
+    .bottom-bar { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .status-bar { flex: 1; padding: 8px 12px; background: var(--bg-secondary); border-radius: 8px; font-size: 0.875rem; color: var(--text-secondary); }
+    .export-group { display: flex; gap: 4px; }
+    #fileInput { display: none; }
+    .num-display { font-weight: bold; min-width: 24px; text-align: center; }
+    .toggle-wrapper { display: flex; align-items: center; gap: 6px; }
+    .toggle-switch { position: relative; width: 40px; height: 22px; background: var(--border-color); border-radius: 11px; cursor: pointer; transition: background 0.2s; }
+    .toggle-switch.active { background: var(--accent-color); }
+    .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: transform 0.2s; }
+    .toggle-switch.active::after { transform: translateX(18px); }
+    .toggle-label { font-size: 0.75rem; color: var(--text-secondary); }
+    .footer { margin-top: 24px; padding: 16px; text-align: center; font-size: 0.8rem; color: var(--text-secondary); }
+    .footer .heart { color: #e53935; }
+    .footer a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+    .footer a:hover { color: var(--accent-color); }
+    .footer .sep { margin: 0 8px; opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header><h1>✏️ Quick Marker</h1><button class="theme-toggle" onclick="toggleTheme()">🌙</button></header>
+    <div class="toolbar">
+      <div class="tool-group">
+        <button class="tool-btn" onclick="pasteFromClipboard()">📋 貼り付け</button>
+        <button class="tool-btn" onclick="document.getElementById('fileInput').click()">📂 ファイル</button>
+        <input type="file" id="fileInput" accept="image/*" onchange="loadFromFile(event)">
+      </div>
+      <div class="tool-group">
+        <button class="tool-btn" onclick="undo()" id="undoBtn" disabled>↩️ 戻す</button>
+        <button class="tool-btn" onclick="redo()" id="redoBtn" disabled>↪️ やり直し</button>
+      </div>
+      <div class="tool-group">
+        <button class="tool-btn" data-tool="select" onclick="setTool('select')">🎯 選択</button>
+        <button class="tool-btn" data-tool="arrow" onclick="setTool('arrow')">➡️ 矢印</button>
+        <button class="tool-btn" data-tool="rect" onclick="setTool('rect')">⬜ 四角</button>
+        <button class="tool-btn" data-tool="blur" onclick="setTool('blur')">🌫️ ぼかし</button>
+        <button class="tool-btn" data-tool="number" onclick="setTool('number')">🔢 番号</button>
+      </div>
+      <div class="tool-group" id="sizeGroup" style="display:none;">
+        <span class="tool-group-label">サイズ</span>
+        <button class="tool-btn small" data-size="S" onclick="setMarkerSize('S')">S</button>
+        <button class="tool-btn small" data-size="M" onclick="setMarkerSize('M')">M</button>
+        <button class="tool-btn small" data-size="L" onclick="setMarkerSize('L')">L</button>
+      </div>
+      <div class="tool-group" id="strokeGroup" style="display:none;">
+        <span class="tool-group-label">太さ</span>
+        <button class="tool-btn small" data-stroke="2" onclick="setStroke(2)">細</button>
+        <button class="tool-btn small" data-stroke="4" onclick="setStroke(4)">中</button>
+        <button class="tool-btn small" data-stroke="8" onclick="setStroke(8)">太</button>
+      </div>
+      <div class="tool-group" id="numberEditGroup" style="display:none;">
+        <span class="tool-group-label">番号</span>
+        <button class="tool-btn small" onclick="changeSelectedNumber(-1)">▼</button>
+        <span class="num-display" id="numDisplay">-</span>
+        <button class="tool-btn small" onclick="changeSelectedNumber(1)">▲</button>
+      </div>
+      <div class="tool-group" id="deleteGroup" style="display:none;">
+        <button class="tool-btn small danger" onclick="deleteSelected()">🗑️ 削除</button>
+      </div>
+      <div class="tool-group">
+        <span class="tool-group-label">色</span>
+        <input type="color" class="color-picker" id="colorPicker" value="#e53935">
+      </div>
+      <div class="tool-group">
+        <span class="tool-group-label">角丸</span>
+        <button class="tool-btn small" data-radius="0" onclick="setCornerRadius(0)">なし</button>
+        <button class="tool-btn small" data-radius="12" onclick="setCornerRadius(12)">S</button>
+        <button class="tool-btn small" data-radius="24" onclick="setCornerRadius(24)">M</button>
+        <button class="tool-btn small" data-radius="40" onclick="setCornerRadius(40)">L</button>
+      </div>
+      <div class="tool-group">
+        <span class="tool-group-label">フチ</span>
+        <button class="tool-btn small" data-border="0" onclick="setBorderWidth(0)">なし</button>
+        <button class="tool-btn small" data-border="8" onclick="setBorderWidth(8)">細</button>
+        <button class="tool-btn small" data-border="16" onclick="setBorderWidth(16)">中</button>
+        <button class="tool-btn small" data-border="24" onclick="setBorderWidth(24)">太</button>
+        <input type="color" class="color-picker small" id="borderColorPicker" value="#ffffff" onchange="render()">
+      </div>
+      <div class="tool-group" id="shadowGroup" style="display:none;">
+        <div class="toggle-wrapper">
+          <span class="toggle-label">影</span>
+          <div class="toggle-switch" id="shadowToggle" onclick="toggleShadow()"></div>
+        </div>
+      </div>
+    </div>
+    <div class="canvas-container">
+      <div class="placeholder" id="placeholder"><p>🖼️ 画像を貼り付けてください</p><p><kbd>Ctrl</kbd> + <kbd>V</kbd> / 「貼り付け」 / 「ファイル」</p></div>
+      <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+    <div class="bottom-bar">
+      <div class="status-bar" id="statusBar">ツールを選択して描画を開始</div>
+      <div class="export-group">
+        <button class="tool-btn" onclick="saveImage()" id="saveBtn" disabled>💾 保存</button>
+        <button class="tool-btn" onclick="copyToClipboard()" id="copyBtn" disabled>📋 コピー</button>
+      </div>
+    </div>
+    <footer class="footer">
+  Made with <span class="heart">♥</span> by Tsubuan © 2025<span class="sep">｜</span><a href="https://x.com/tsubuan_sun" target="_blank">𝕏 でフォロー</a><span class="sep">｜</span><a href="https://note.com/tsubuan_sun/n/nae115b6b663e" target="_blank">🎁 投げ銭する</a><span class="sep">｜</span><a href="http://buymeacoffee.com/tsubuan" target="_blank">☕ Buy Me a Coffee</a>
+</footer>
+  </div>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const placeholder = document.getElementById('placeholder');
+    const statusBar = document.getElementById('statusBar');
+    const colorPicker = document.getElementById('colorPicker');
+    const borderColorPicker = document.getElementById('borderColorPicker');
+    const numDisplay = document.getElementById('numDisplay');
+    const shadowToggle = document.getElementById('shadowToggle');
+    const shadowGroup = document.getElementById('shadowGroup');
+    
+    let baseImage = null;
+    let originalWidth = 0, originalHeight = 0;
+    let objects = [];
+    let history = [];
+    let historyIndex = -1;
+    let selectedIndex = -1;
+    let currentTool = 'arrow';
+    let isDrawing = false, isDragging = false;
+    let startX, startY, dragOffsetX, dragOffsetY;
+    let markerSize = 'M', strokeWidth = 4;
+    let cornerRadius = 0, borderWidth = 0;
+    let shadowEnabled = false;
+    const markerSizeMap = { S: 14, M: 20, L: 28 };
+    const BLUR_STRENGTH = 20;
+
+    const savedTheme = localStorage.getItem('qm-theme') || 'light';
+    if (savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    updateThemeButton();
+
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      localStorage.setItem('qm-theme', isDark ? 'light' : 'dark');
+      updateThemeButton();
+    }
+    function updateThemeButton() {
+      document.querySelector('.theme-toggle').textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+    }
+
+    function setTool(tool) {
+      currentTool = tool;
+      if (tool !== 'select') { selectedIndex = -1; render(); }
+      document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => btn.classList.toggle('active', btn.dataset.tool === tool));
+      document.getElementById('sizeGroup').style.display = tool === 'number' ? 'flex' : 'none';
+      document.getElementById('strokeGroup').style.display = (tool === 'rect' || tool === 'arrow') ? 'flex' : 'none';
+      document.getElementById('deleteGroup').style.display = tool === 'select' ? 'flex' : 'none';
+      updateNumberEditGroup();
+      canvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
+      statusBar.textContent = {select:'選択ツール（クリックで選択、ドラッグで移動）',arrow:'矢印',rect:'四角',blur:'ぼかし（重ねがけ可能）',number:'番号マーカー'}[tool] + (tool !== 'select' ? 'ツールを選択中' : '');
+    }
+    function setMarkerSize(size) {
+      markerSize = size;
+      document.querySelectorAll('[data-size]').forEach(btn => btn.classList.toggle('active', btn.dataset.size === size));
+    }
+    function setStroke(width) {
+      strokeWidth = width;
+      document.querySelectorAll('[data-stroke]').forEach(btn => btn.classList.toggle('active', parseInt(btn.dataset.stroke) === width));
+    }
+    function setCornerRadius(r) {
+      cornerRadius = r;
+      document.querySelectorAll('[data-radius]').forEach(btn => btn.classList.toggle('active', parseInt(btn.dataset.radius) === r));
+      render();
+    }
+    function setBorderWidth(w) {
+      borderWidth = w;
+      document.querySelectorAll('[data-border]').forEach(btn => btn.classList.toggle('active', parseInt(btn.dataset.border) === w));
+      shadowGroup.style.display = w > 0 ? 'flex' : 'none';
+      if (w === 0) { shadowEnabled = false; shadowToggle.classList.remove('active'); }
+      resizeCanvas();
+      render();
+    }
+    function toggleShadow() {
+      shadowEnabled = !shadowEnabled;
+      shadowToggle.classList.toggle('active', shadowEnabled);
+      render();
+    }
+    function updateNumberEditGroup() {
+      const show = currentTool === 'select' && selectedIndex >= 0 && objects[selectedIndex]?.type === 'number';
+      document.getElementById('numberEditGroup').style.display = show ? 'flex' : 'none';
+      if (show) numDisplay.textContent = objects[selectedIndex].num;
+    }
+    function changeSelectedNumber(delta) {
+      if (selectedIndex >= 0 && objects[selectedIndex]?.type === 'number') {
+        const newNum = Math.max(1, objects[selectedIndex].num + delta);
+        objects[selectedIndex].num = newNum;
+        numDisplay.textContent = newNum;
+        saveToHistory(); render();
+      }
+    }
+    function getNextNumber() {
+      const nums = objects.filter(o => o.type === 'number').map(o => o.num);
+      return nums.length > 0 ? Math.max(...nums) + 1 : 1;
+    }
+    setTool('arrow'); setMarkerSize('M'); setStroke(4); setCornerRadius(0); setBorderWidth(0);
+
+    function confirmIfEdited() {
+      if (objects.length > 0) return confirm('現在の編集内容がクリアされます。続けますか？');
+      return true;
+    }
+    async function pasteFromClipboard() {
+      if (!confirmIfEdited()) return;
+      try {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          for (const type of item.types) {
+            if (type.startsWith('image/')) { loadImage(await item.getType(type)); return; }
+          }
+        }
+        statusBar.textContent = '⚠️ クリップボードに画像がありません';
+      } catch { statusBar.textContent = '⚠️ クリップボードへのアクセスが拒否されました'; }
+    }
+    document.addEventListener('paste', e => {
+      if (!confirmIfEdited()) return;
+      for (const item of e.clipboardData.items) {
+        if (item.type.startsWith('image/')) { loadImage(item.getAsFile()); return; }
+      }
+    });
+    function loadFromFile(event) {
+      if (!confirmIfEdited()) { event.target.value = ''; return; }
+      const file = event.target.files[0];
+      if (file && file.type.startsWith('image/')) loadImage(file);
+      event.target.value = '';
+    }
+    function loadImage(blob) {
+      const img = new Image();
+      img.onload = () => {
+        baseImage = img;
+        originalWidth = img.width;
+        originalHeight = img.height;
+        resizeCanvas();
+        placeholder.style.display = 'none'; canvas.style.display = 'block';
+        objects = []; history = []; historyIndex = -1; selectedIndex = -1;
+        saveToHistory(); render(); updateButtons();
+        statusBar.textContent = `✅ 画像を読み込みました (${img.width} x ${img.height})`;
+      };
+      img.src = URL.createObjectURL(blob);
+    }
+    
+    function resizeCanvas() {
+      if (!baseImage) return;
+      canvas.width = originalWidth + borderWidth * 2;
+      canvas.height = originalHeight + borderWidth * 2;
+    }
+
+    function saveToHistory() {
+      history = history.slice(0, historyIndex + 1);
+      history.push(JSON.parse(JSON.stringify(objects)));
+      historyIndex++;
+      if (history.length > 50) { history.shift(); historyIndex--; }
+      updateButtons();
+    }
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        objects = JSON.parse(JSON.stringify(history[historyIndex]));
+        selectedIndex = -1; updateNumberEditGroup();
+        render(); updateButtons();
+        statusBar.textContent = '↩️ 元に戻しました';
+      }
+    }
+    function redo() {
+      if (historyIndex < history.length - 1) {
+        historyIndex++;
+        objects = JSON.parse(JSON.stringify(history[historyIndex]));
+        selectedIndex = -1; updateNumberEditGroup();
+        render(); updateButtons();
+        statusBar.textContent = '↪️ やり直しました';
+      }
+    }
+    function updateButtons() {
+      document.getElementById('undoBtn').disabled = historyIndex <= 0;
+      document.getElementById('redoBtn').disabled = historyIndex >= history.length - 1;
+      document.getElementById('saveBtn').disabled = !baseImage;
+      document.getElementById('copyBtn').disabled = !baseImage;
+    }
+
+    function roundedRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function render() {
+      if (!baseImage) return;
+      const offset = borderWidth;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (borderWidth > 0) {
+        ctx.fillStyle = borderColorPicker.value;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        if (shadowEnabled) {
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+          ctx.shadowBlur = 3;
+          ctx.shadowOffsetX = 5;
+          ctx.shadowOffsetY = 5;
+          ctx.fillStyle = '#000';
+          if (cornerRadius > 0) {
+            roundedRect(ctx, offset, offset, originalWidth, originalHeight, cornerRadius);
+            ctx.fill();
+          } else {
+            ctx.fillRect(offset, offset, originalWidth, originalHeight);
+          }
+          ctx.restore();
+        }
+      }
+
+      ctx.save();
+      if (cornerRadius > 0) {
+        roundedRect(ctx, offset, offset, originalWidth, originalHeight, cornerRadius);
+        ctx.clip();
+      }
+      
+      ctx.drawImage(baseImage, offset, offset);
+      
+      objects.forEach((obj) => {
+        if (obj.type === 'blur') applyBlur(obj, offset);
+      });
+      
+      objects.forEach((obj, i) => {
+        if (obj.type === 'arrow') drawArrowObj(obj, offset);
+        else if (obj.type === 'rect') drawRectObj(obj, offset);
+        else if (obj.type === 'number') drawNumberObj(obj, offset);
+        if (i === selectedIndex) drawSelection(obj, offset);
+      });
+      
+      ctx.restore();
+    }
+
+    function applyBlur(obj, offset) {
+      const { x, y, w, h } = obj;
+      const ax = Math.min(x, x + w) + offset;
+      const ay = Math.min(y, y + h) + offset;
+      const aw = Math.abs(w);
+      const ah = Math.abs(h);
+      if (aw < 1 || ah < 1) return;
+      
+      const margin = BLUR_STRENGTH * 3;
+      const tempW = aw + margin * 2;
+      const tempH = ah + margin * 2;
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = tempW;
+      tempCanvas.height = tempH;
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      const srcX = ax - margin;
+      const srcY = ay - margin;
+      
+      const clampedSrcX = Math.max(0, srcX);
+      const clampedSrcY = Math.max(0, srcY);
+      const clampedSrcR = Math.min(canvas.width, srcX + tempW);
+      const clampedSrcB = Math.min(canvas.height, srcY + tempH);
+      const clampedW = clampedSrcR - clampedSrcX;
+      const clampedH = clampedSrcB - clampedSrcY;
+      
+      const destX = clampedSrcX - srcX;
+      const destY = clampedSrcY - srcY;
+      
+      if (clampedW > 0 && clampedH > 0) {
+        tempCtx.drawImage(canvas, clampedSrcX, clampedSrcY, clampedW, clampedH, destX, destY, clampedW, clampedH);
+      }
+      
+      if (destX > 0) {
+        tempCtx.drawImage(tempCanvas, destX, destY, 1, clampedH, 0, destY, destX, clampedH);
+      }
+      const rightGap = tempW - (destX + clampedW);
+      if (rightGap > 0) {
+        tempCtx.drawImage(tempCanvas, destX + clampedW - 1, destY, 1, clampedH, destX + clampedW, destY, rightGap, clampedH);
+      }
+      if (destY > 0) {
+        tempCtx.drawImage(tempCanvas, 0, destY, tempW, 1, 0, 0, tempW, destY);
+      }
+      const bottomGap = tempH - (destY + clampedH);
+      if (bottomGap > 0) {
+        tempCtx.drawImage(tempCanvas, 0, destY + clampedH - 1, tempW, 1, 0, destY + clampedH, tempW, bottomGap);
+      }
+      
+      const blurCanvas = document.createElement('canvas');
+      blurCanvas.width = tempW;
+      blurCanvas.height = tempH;
+      const blurCtx = blurCanvas.getContext('2d');
+      blurCtx.filter = `blur(${BLUR_STRENGTH}px)`;
+      blurCtx.drawImage(tempCanvas, 0, 0);
+      
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(ax, ay, aw, ah);
+      ctx.clip();
+      ctx.drawImage(blurCanvas, margin, margin, aw, ah, ax, ay, aw, ah);
+      ctx.restore();
+    }
+
+    function drawArrowObj(obj, offset = 0) {
+      const { x1, y1, x2, y2, color, stroke } = obj;
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      
+      const headLength = 12 + stroke * 4;
+      const headWidth = 8 + stroke * 3;
+      const shaftWidth = stroke * 1.2;
+      
+      const tipX = x2 + offset;
+      const tipY = y2 + offset;
+      const baseX = x1 + offset;
+      const baseY = y1 + offset;
+      
+      const neckX = tipX - headLength * Math.cos(angle);
+      const neckY = tipY - headLength * Math.sin(angle);
+      
+      const perpX = Math.cos(angle + Math.PI / 2);
+      const perpY = Math.sin(angle + Math.PI / 2);
+      
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(baseX + perpX * shaftWidth, baseY + perpY * shaftWidth);
+      ctx.lineTo(neckX + perpX * shaftWidth, neckY + perpY * shaftWidth);
+      ctx.lineTo(neckX + perpX * headWidth, neckY + perpY * headWidth);
+      ctx.lineTo(tipX, tipY);
+      ctx.lineTo(neckX - perpX * headWidth, neckY - perpY * headWidth);
+      ctx.lineTo(neckX - perpX * shaftWidth, neckY - perpY * shaftWidth);
+      ctx.lineTo(baseX - perpX * shaftWidth, baseY - perpY * shaftWidth);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawRectObj(obj, offset = 0) {
+      ctx.strokeStyle = obj.color; ctx.lineWidth = obj.stroke;
+      ctx.strokeRect(obj.x + offset, obj.y + offset, obj.w, obj.h);
+    }
+    function drawNumberObj(obj, offset = 0) {
+      const { x, y, num, size, color } = obj;
+      const radius = markerSizeMap[size], fontSize = radius * 1.1;
+      ctx.beginPath(); ctx.arc(x + offset, y + offset, radius, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+      ctx.fillStyle = 'white'; ctx.font = `bold ${fontSize}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(num, x + offset, y + offset + 1);
+    }
+    function drawSelection(obj, offset = 0) {
+      ctx.strokeStyle = '#00aaff'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+      const bounds = getObjBounds(obj);
+      ctx.strokeRect(bounds.x - 5 + offset, bounds.y - 5 + offset, bounds.w + 10, bounds.h + 10);
+      ctx.setLineDash([]);
+    }
+
+    function getObjBounds(obj) {
+      if (obj.type === 'arrow') {
+        const minX = Math.min(obj.x1, obj.x2), minY = Math.min(obj.y1, obj.y2);
+        return { x: minX, y: minY, w: Math.abs(obj.x2 - obj.x1) || 20, h: Math.abs(obj.y2 - obj.y1) || 20 };
+      } else if (obj.type === 'rect' || obj.type === 'blur') {
+        return { x: Math.min(obj.x, obj.x + obj.w), y: Math.min(obj.y, obj.y + obj.h), w: Math.abs(obj.w), h: Math.abs(obj.h) };
+      } else if (obj.type === 'number') {
+        const r = markerSizeMap[obj.size];
+        return { x: obj.x - r, y: obj.y - r, w: r * 2, h: r * 2 };
+      }
+      return { x: 0, y: 0, w: 0, h: 0 };
+    }
+
+    function hitTest(x, y) {
+      for (let i = objects.length - 1; i >= 0; i--) {
+        const bounds = getObjBounds(objects[i]);
+        if (x >= bounds.x - 5 && x <= bounds.x + bounds.w + 5 && y >= bounds.y - 5 && y <= bounds.y + bounds.h + 5) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width) - borderWidth;
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height) - borderWidth;
+      return { x, y };
+    }
+
+    canvas.addEventListener('mousedown', e => {
+      if (!baseImage) return;
+      const { x, y } = getCanvasCoords(e);
+      startX = x; startY = y;
+
+      if (currentTool === 'select') {
+        const hit = hitTest(x, y);
+        selectedIndex = hit;
+        updateNumberEditGroup();
+        render();
+        if (hit >= 0) {
+          isDragging = true;
+          const bounds = getObjBounds(objects[hit]);
+          dragOffsetX = x - bounds.x;
+          dragOffsetY = y - bounds.y;
+          canvas.style.cursor = 'move';
+        }
+      } else if (currentTool === 'number') {
+        const nextNum = getNextNumber();
+        objects.push({ type: 'number', x, y, num: nextNum, size: markerSize, color: colorPicker.value });
+        saveToHistory(); render();
+        statusBar.textContent = `🔢 マーカー ${nextNum} を配置`;
+      } else {
+        isDrawing = true;
+      }
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      if (!baseImage) return;
+      const { x, y } = getCanvasCoords(e);
+
+      if (isDragging && selectedIndex >= 0) {
+        const obj = objects[selectedIndex];
+        const bounds = getObjBounds(obj);
+        const dx = x - dragOffsetX - bounds.x;
+        const dy = y - dragOffsetY - bounds.y;
+        moveObject(obj, dx, dy);
+        render();
+      } else if (isDrawing) {
+        render();
+        const offset = borderWidth;
+        if (currentTool === 'arrow') drawArrowObj({ x1: startX, y1: startY, x2: x, y2: y, color: colorPicker.value, stroke: strokeWidth }, offset);
+        else if (currentTool === 'rect') drawRectObj({ x: startX, y: startY, w: x - startX, h: y - startY, color: colorPicker.value, stroke: strokeWidth }, offset);
+        else if (currentTool === 'blur') {
+          ctx.strokeStyle = '#00aaff'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+          ctx.strokeRect(startX + offset, startY + offset, x - startX, y - startY);
+          ctx.setLineDash([]);
+        }
+      } else if (currentTool === 'select') {
+        const hit = hitTest(x, y);
+        canvas.style.cursor = hit >= 0 ? 'move' : 'default';
+      }
+    });
+
+    canvas.addEventListener('mouseup', e => {
+      if (!baseImage) return;
+      const { x, y } = getCanvasCoords(e);
+
+      if (isDragging) {
+        isDragging = false;
+        canvas.style.cursor = 'default';
+        saveToHistory();
+      } else if (isDrawing) {
+        isDrawing = false;
+        if (currentTool === 'arrow' && (Math.abs(x - startX) > 5 || Math.abs(y - startY) > 5)) {
+          objects.push({ type: 'arrow', x1: startX, y1: startY, x2: x, y2: y, color: colorPicker.value, stroke: strokeWidth });
+          saveToHistory();
+        } else if (currentTool === 'rect' && Math.abs(x - startX) > 5 && Math.abs(y - startY) > 5) {
+          objects.push({ type: 'rect', x: startX, y: startY, w: x - startX, h: y - startY, color: colorPicker.value, stroke: strokeWidth });
+          saveToHistory();
+        } else if (currentTool === 'blur' && Math.abs(x - startX) > 5 && Math.abs(y - startY) > 5) {
+          objects.push({ type: 'blur', x: startX, y: startY, w: x - startX, h: y - startY });
+          saveToHistory();
+        }
+        render();
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (isDrawing) { isDrawing = false; render(); }
+    });
+
+    function moveObject(obj, dx, dy) {
+      if (obj.type === 'arrow') { obj.x1 += dx; obj.y1 += dy; obj.x2 += dx; obj.y2 += dy; }
+      else if (obj.type === 'rect' || obj.type === 'blur') { obj.x += dx; obj.y += dy; }
+      else if (obj.type === 'number') { obj.x += dx; obj.y += dy; }
+    }
+
+    function deleteSelected() {
+      if (selectedIndex >= 0) {
+        objects.splice(selectedIndex, 1);
+        selectedIndex = -1;
+        updateNumberEditGroup();
+        saveToHistory(); render();
+        statusBar.textContent = '🗑️ 削除しました';
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIndex >= 0 && currentTool === 'select') {
+        e.preventDefault();
+        deleteSelected();
+      }
+      if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
+      if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
+    });
+
+    function saveImage() {
+      selectedIndex = -1; render();
+      const a = document.createElement('a');
+      a.download = `quickmarker_${Date.now()}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      statusBar.textContent = '💾 画像を保存しました';
+    }
+    async function copyToClipboard() {
+      selectedIndex = -1; render();
+      try {
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        statusBar.textContent = '📋 クリップボードにコピーしました';
+      } catch { statusBar.textContent = '⚠️ コピーに失敗しました'; }
+    }
+  </script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
